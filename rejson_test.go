@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"reflect"
-	"strings"
 	"testing"
 
 	goredis "github.com/go-redis/redis/v8"
@@ -44,11 +43,13 @@ func (t *TestClient) init() []helper {
 		return nil
 	}
 
-	// GoRedis Test Clients
+	// GoRedis Test Client
 	goredisCli := goredis.NewClient(&goredis.Options{Addr: "localhost:6379"})
 
-	nodes := strings.Split("localhost:7001,localhost:7002,localhost:7003,localhost:7004,localhost:7005,localhost:7006", ",")
-	goredisclusterCli := goredis.NewClusterClient(&goredis.ClusterOptions{Addrs: nodes})
+	// GoRedis Test cluster Client
+	goredisclusterCli := goredis.NewClusterClient(&goredis.ClusterOptions{
+		Addrs: []string{"localhost:7001", "localhost:7002", "localhost:7003", "localhost:7004", "localhost:7005", "localhost:7006"},
+	})
 
 	return []helper{
 		{cli: redigoCli, name: "Redigo ", closeFunc: func() {
@@ -70,7 +71,7 @@ func (t *TestClient) init() []helper {
 			}
 		}},
 		{cli: goredisclusterCli, name: "GoRedisCluster ", closeFunc: func() {
-			// please see this: https://github.com/go-redis/redis/issues?q=FlushAll
+			// please see this: https://github.com/go-redis/redis/issues/240
 			err := goredisclusterCli.ForEachMaster(goredisclusterCli.Context(), func(ctx context.Context, master *goredis.Client) error {
 				master.FlushAll(ctx)
 				return nil
@@ -112,7 +113,7 @@ func TestReJSON(t *testing.T) {
 	for _, obj := range list {
 		t.Run(obj.name+"TestJSONSet", func(t *testing.T) {
 			test.SetTestingClient(obj.cli)
-			testJSONSet(test.rh, t) // TODO: REMOVE COMMENT PROBLEMS WITH THESE TESTS , goRedisClusterClient
+			testJSONSet(test.rh, t)
 		})
 		t.Run(obj.name+"TestJSONGet", func(t *testing.T) {
 			test.SetTestingClient(obj.cli)
@@ -124,11 +125,11 @@ func TestReJSON(t *testing.T) {
 		})
 		t.Run(obj.name+"TestJSONMGet", func(t *testing.T) {
 			test.SetTestingClient(obj.cli)
-			testJSONMGet(test.rh, t) // TODO: REMOVE COMMENT PROBLEMS WITH THESE TESTS redigoClient, goRedisClient, goRedisClusterClient
+			testJSONMGet(test.rh, t)
 		})
 		t.Run(obj.name+"TestJSONType", func(t *testing.T) {
 			test.SetTestingClient(obj.cli)
-			testJSONType(test.rh, t) // TODO: REMOVE COMMENT PROBLEMS WITH THESE TESTS redigoClient
+			testJSONType(test.rh, t)
 		})
 		t.Run(obj.name+"TestJSONNumIncrBy", func(t *testing.T) {
 			test.SetTestingClient(obj.cli)
@@ -160,7 +161,7 @@ func TestReJSON(t *testing.T) {
 		})
 		t.Run(obj.name+"TestJSONArrIndex", func(t *testing.T) {
 			test.SetTestingClient(obj.cli)
-			testJSONArrIndex(test.rh, t) // TODO: REMOVE COMMENT PROBLEMS WITH THESE TESTS redigoClient, goRedisClient
+			testJSONArrIndex(test.rh, t)
 		})
 		t.Run(obj.name+"TestJSONArrTrim", func(t *testing.T) {
 			test.SetTestingClient(obj.cli)
@@ -180,7 +181,7 @@ func TestReJSON(t *testing.T) {
 		})
 		t.Run(obj.name+"TestJSONDebug", func(t *testing.T) {
 			test.SetTestingClient(obj.cli)
-			testJSONDebug(test.rh, t) // TODO: REMOVE COMMENT PROBLEMS WITH THESE TESTS redigoClient, goRedisClient
+			testJSONDebug(test.rh, t)
 		})
 		t.Run(obj.name+"TestJSONForget", func(t *testing.T) {
 			test.SetTestingClient(obj.cli)
@@ -622,19 +623,22 @@ func testJSONMGet(rh *Handler, t *testing.T) {
 		Number: 3,
 	}
 
-	_, err = rh.JSONSet("testObj1", ".", testObj1)
+	// The alterations performed in these keys were performed due the CROSSSLOT error in the cluster Redis. Please see these links:
+	// https://aws.amazon.com/premiumsupport/knowledge-center/elasticache-crossslot-keys-error-redis/
+	// https://redislabs.com/blog/redis-clustering-best-practices-with-keys/
+	_, err = rh.JSONSet("{testObj}:1", ".", testObj1)
 	if err != nil {
 		t.Fatal("Failed to Set key ", err)
 		return
 	}
 
-	_, err = rh.JSONSet("testObj2", ".", testObj2)
+	_, err = rh.JSONSet("{testObj}:2", ".", testObj2)
 	if err != nil {
 		t.Fatal("Failed to Set key ", err)
 		return
 	}
 
-	_, err = rh.JSONSet("testObj3", ".", testObj3)
+	_, err = rh.JSONSet("{testObj}:3", ".", testObj3)
 	if err != nil {
 		t.Fatal("Failed to Set key ", err)
 		return
@@ -651,24 +655,24 @@ func testJSONMGet(rh *Handler, t *testing.T) {
 		wantRes interface{}
 		wantErr bool
 	}{
-		// {
-		// 	name: "NameThreeStudents",
-		// 	args: args{
-		// 		path: "name",
-		// 		keys: []string{"testObj1", "testObj2", "testObj3"}, // problem with clusterClient: due to a redirect, we receive the "Item#3" at nil
-		// 	},
-		// 	wantRes: append(resultNameThreeStudents,
-		// 		[]byte("\"Item#1\""),
-		// 		[]byte("\"Item#2\""),
-		// 		[]byte("\"Item#3\""),
-		// 	),
-		// 	wantErr: false,
-		// },
+		{
+			name: "NameThreeStudents",
+			args: args{
+				path: "name",
+				keys: []string{"{testObj}:1", "{testObj}:2", "{testObj}:3"},
+			},
+			wantRes: append(resultNameThreeStudents,
+				[]byte("\"Item#1\""),
+				[]byte("\"Item#2\""),
+				[]byte("\"Item#3\""),
+			),
+			wantErr: false,
+		},
 		{
 			name: "NonExistingKey",
 			args: args{
 				path: "name",
-				keys: []string{"testObj1", "testObj2", "foobar"},
+				keys: []string{"{testObj}:1", "{testObj}:2", "{testObj}:4"},
 			},
 			wantRes: append(resultNameThreeStudents,
 				[]byte("\"Item#1\""),
@@ -686,7 +690,7 @@ func testJSONMGet(rh *Handler, t *testing.T) {
 			wantRes: append(resultNameThreeStudents,
 				nil,
 			),
-			wantErr: true, // redigoClient, redisClient, redisClusterClient (JSONMGet() error = ERR path does not exist, wantErr false)
+			wantErr: false,
 		},
 		{
 			name: "NoKeys",
@@ -759,7 +763,7 @@ func testJSONType(rh *Handler, t *testing.T) {
 				key:  "testObj",
 				path: ".",
 			},
-			wantRes: "object", // redigoClient(JSONType() = [111 98 106 101 99 116], want string)
+			wantRes: "object",
 			wantErr: false,
 		},
 		{
@@ -768,7 +772,7 @@ func testJSONType(rh *Handler, t *testing.T) {
 				key:  "testObj",
 				path: "name",
 			},
-			wantRes: "string", // redigoClient(JSONType() = [115 116 114 105 110 103], want string)
+			wantRes: "string",
 			wantErr: false,
 		},
 		{
@@ -777,7 +781,7 @@ func testJSONType(rh *Handler, t *testing.T) {
 				key:  "testObj",
 				path: "number",
 			},
-			wantRes: "integer", // redigoClient(JSONType() = [105 110 116 101 103 101 114], want integer)
+			wantRes: "integer",
 			wantErr: false,
 		},
 		{
@@ -805,11 +809,6 @@ func testJSONType(rh *Handler, t *testing.T) {
 				rh.SetClientInactive()
 			}
 			gotRes, err := rh.JSONType(tt.args.key, tt.args.path)
-			if rh.clientName == "redigo" && gotRes != nil {
-				// redigoClient(JSONType() = [111 98 106 101 99 116], want string) or [115 116 114 105 110 103], want string) or [105 110 116 101 103 101 114], want integer)
-				gotRes = string(gotRes.([]uint8))
-			}
-
 			if (err != nil) != tt.wantErr {
 				t.Errorf("JSONType() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -1527,8 +1526,8 @@ func testJSONArrIndex(rh *Handler, t *testing.T) {
 				path:  ".",
 				value: "one",
 			},
-			wantRes: int64(-1), // redigoClient, goRedisClient, goRedisClusterClient (JSONArrIndex() error = <nil>, wantErr true) because we receive gotRes = -1
-			wantErr: false,
+			wantRes: redigo.Error("ERR wrong type of path value - expected array but found string"),
+			wantErr: true,
 		},
 		{
 			name: rjs.ClientInactive,
@@ -1934,7 +1933,7 @@ func testJSONDebug(rh *Handler, t *testing.T) {
 				key:        "tstr",
 				path:       ".",
 			},
-			wantRes: int64(24), // This value is not correct, instead we have 24 returned in redigoClient, goRedisClient, and goRedisClusterClient(JSONDebug() = 24, want 36)
+			wantRes: int64(36),
 			wantErr: false,
 		},
 		{

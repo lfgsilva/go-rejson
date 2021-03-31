@@ -22,6 +22,7 @@ const (
 
 	// ClientGoRedis signifies that the current client is go-redis
 	ClientGoRedis = "goredis"
+
 	// ClientGoRedisCluster means that the current client is go-redis cluster
 	ClientGoRedisCluster = "gorediscluster"
 

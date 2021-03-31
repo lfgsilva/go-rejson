@@ -25,6 +25,7 @@ func (r *Handler) SetContext(ctx context.Context) *Handler {
 			}
 		}
 	}
+
 	if r.clientName == rjs.ClientGoRedisCluster {
 		if old, ok := r.implementation.(*clients.GoRedisCluster); ok {
 			return &Handler{
