@@ -2,6 +2,7 @@ package rejson
 
 import (
 	"context"
+
 	goredis "github.com/go-redis/redis/v8"
 	redigo "github.com/gomodule/redigo/redis"
 	"github.com/nitishm/go-rejson/v4/clients"
@@ -13,6 +14,7 @@ type RedisClient interface {
 	SetClientInactive()
 	SetRedigoClient(redigo.Conn)
 	SetGoRedisClient(conn *goredis.Client)
+	SetGoRedisClusterClient(conn *goredis.ClusterClient)
 }
 
 // SetClientInactive resets the handler and unset any client, set to the handler
@@ -40,4 +42,11 @@ func (r *Handler) SetGoRedisClient(conn *goredis.Client) {
 func (r *Handler) SetGoRedisClientWithContext(ctx context.Context, conn *goredis.Client) {
 	r.clientName = "goredis"
 	r.implementation = clients.NewGoRedisClient(ctx, conn)
+}
+
+// SetGoRedisClusterClientWithContext sets Go-Redis (https://github.com/go-redis/redis) cluster client to
+// the handler with a global context for the connection
+func (r *Handler) SetGoRedisClusterClientWithContext(ctx context.Context, conn *goredis.ClusterClient) {
+	r.clientName = "gorediscluster"
+	r.implementation = clients.NewGoRedisClusterClient(ctx, conn)
 }

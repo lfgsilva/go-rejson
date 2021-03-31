@@ -22,6 +22,8 @@ const (
 
 	// ClientGoRedis signifies that the current client is go-redis
 	ClientGoRedis = "goredis"
+	// ClientGoRedisCluster means that the current client is go-redis cluster
+	ClientGoRedisCluster = "gorediscluster"
 
 	// PopArrLast gives index of the last element for JSONArrPop
 	PopArrLast = -1

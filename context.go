@@ -2,6 +2,7 @@ package rejson
 
 import (
 	"context"
+
 	"github.com/nitishm/go-rejson/v4/clients"
 	"github.com/nitishm/go-rejson/v4/rjs"
 )
@@ -23,6 +24,15 @@ func (r *Handler) SetContext(ctx context.Context) *Handler {
 				implementation: clients.NewGoRedisClient(ctx, old.Conn),
 			}
 		}
+	}
+	if r.clientName == rjs.ClientGoRedisCluster {
+		if old, ok := r.implementation.(*clients.GoRedisCluster); ok {
+			return &Handler{
+				clientName:     r.clientName,
+				implementation: clients.NewGoRedisClusterClient(ctx, old.Conn),
+			}
+		}
+
 	}
 
 	// for other clients, context is of no use, hence return same
