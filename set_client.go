@@ -27,7 +27,7 @@ func (r *Handler) SetClientInactive() {
 // SetRedigoClient sets Redigo (https://github.com/gomodule/redigo/redis) client
 // to the handler
 func (r *Handler) SetRedigoClient(conn redigo.Conn) {
-	r.clientName = "redigo"
+	r.clientName = rjs.ClientRedigo
 	r.implementation = &clients.Redigo{Conn: conn}
 }
 
@@ -40,13 +40,13 @@ func (r *Handler) SetGoRedisClient(conn *goredis.Client) {
 // SetGoRedisClientWithContext sets Go-Redis (https://github.com/go-redis/redis) client to
 // the handler with a global context for the connection
 func (r *Handler) SetGoRedisClientWithContext(ctx context.Context, conn *goredis.Client) {
-	r.clientName = "goredis"
+	r.clientName = rjs.ClientGoRedis
 	r.implementation = clients.NewGoRedisClient(ctx, conn)
 }
 
 // SetGoRedisClusterClientWithContext sets Go-Redis (https://github.com/go-redis/redis) cluster client to
 // the handler with a global context for the connection
 func (r *Handler) SetGoRedisClusterClientWithContext(ctx context.Context, conn *goredis.ClusterClient) {
-	r.clientName = "gorediscluster"
+	r.clientName = rjs.ClientGoRedisCluster
 	r.implementation = clients.NewGoRedisClusterClient(ctx, conn)
 }
