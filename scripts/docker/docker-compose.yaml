@@ -1,0 +1,114 @@
+version: "2"
+services:
+  redis-1:
+    container_name: redis-node-1
+    hostname: redis-1
+    image: redislabs/rejson:1.0.7
+    command: redis-server /usr/local/etc/redis/redis.conf
+    networks:
+      red_cluster:
+        ipv4_address: 172.19.0.2
+    ports:
+      - "7001:7001"
+    volumes:
+      - "./node1/cluster-config.conf:/usr/local/etc/redis/redis.conf"
+
+  redis-2:
+    container_name: redis-node-2
+    hostname: redis-2
+    image: redislabs/rejson:1.0.7
+    command: redis-server /usr/local/etc/redis/redis.conf
+    networks:
+      red_cluster:
+        ipv4_address: 172.19.0.3
+    ports:
+      - "7002:7002"
+    volumes:
+      - "./node2/cluster-config.conf:/usr/local/etc/redis/redis.conf"
+
+  redis-3:
+    container_name: redis-node-3
+    hostname: redis-3
+    image: redislabs/rejson:1.0.7
+    command: redis-server /usr/local/etc/redis/redis.conf
+    networks:
+      red_cluster:
+        ipv4_address: 172.19.0.4
+    ports:
+      - "7003:7003"
+    volumes:
+      - "./node3/cluster-config.conf:/usr/local/etc/redis/redis.conf"
+
+  redis-4:
+    container_name: redis-node-4
+    hostname: redis-4
+    image: redislabs/rejson:1.0.7
+    command: redis-server /usr/local/etc/redis/redis.conf
+    networks:
+      red_cluster:
+        ipv4_address: 172.19.0.5
+    ports:
+      - "7004:7004"
+    volumes:
+      - "./node4/cluster-config.conf:/usr/local/etc/redis/redis.conf"
+
+  redis-5:
+    container_name: redis-node-5
+    hostname: redis-5
+    image: redislabs/rejson:1.0.7
+    command: redis-server /usr/local/etc/redis/redis.conf
+    networks:
+      red_cluster:
+        ipv4_address: 172.19.0.6
+
+    ports:
+      - "7005:7005"
+    volumes:
+      - "./node5/cluster-config.conf:/usr/local/etc/redis/redis.conf"
+
+  redis-6:
+    container_name: redis-node-6
+    hostname: redis-6
+    image: redislabs/rejson:1.0.7
+    command: redis-server /usr/local/etc/redis/redis.conf
+    networks:
+      red_cluster:
+        ipv4_address: 172.19.0.7
+    ports:
+      - "7006:7006"
+    volumes:
+      - "./node6/cluster-config.conf:/usr/local/etc/redis/redis.conf"
+
+  redis-cluster-cli-init:
+    container_name: redis-cluster-cli
+    hostname: redis-cluster-cli
+    image: redislabs/rejson:1.0.7
+    networks:
+      red_cluster:
+        ipv4_address: 172.19.0.8
+    depends_on:
+      - redis-1
+      - redis-2
+      - redis-3
+      - redis-4
+      - redis-5
+      - redis-6
+    command: "redis-cli --cluster create 172.19.0.2:7001 172.19.0.3:7002 172.19.0.4:7003 172.19.0.5:7004 172.19.0.6:7005 172.19.0.7:7006 --cluster-yes --cluster-replicas 1"
+
+  redis-standalone:
+    container_name: redis-node-standalone
+    hostname: redis-standalone
+    image: redislabs/rejson:1.0.7
+    networks:
+      red_cluster:
+        ipv4_address: 172.19.0.9
+    ports:
+      - "6379:6379"
+
+networks:
+  red_cluster:
+    driver: "bridge"
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.19.0.0/16
