@@ -17,23 +17,13 @@ func (r *Handler) SetContext(ctx context.Context) *Handler {
 		return r // nil
 	}
 
-	if r.clientName == rjs.ClientGoRedis {
+	if r.clientName == rjs.ClientGoRedis || r.clientName == rjs.ClientGoRedisCluster {
 		if old, ok := r.implementation.(*clients.GoRedis); ok {
 			return &Handler{
 				clientName:     r.clientName,
 				implementation: clients.NewGoRedisClient(ctx, old.Conn),
 			}
 		}
-	}
-
-	if r.clientName == rjs.ClientGoRedisCluster {
-		if old, ok := r.implementation.(*clients.GoRedisCluster); ok {
-			return &Handler{
-				clientName:     r.clientName,
-				implementation: clients.NewGoRedisClusterClient(ctx, old.Conn),
-			}
-		}
-
 	}
 
 	// for other clients, context is of no use, hence return same
