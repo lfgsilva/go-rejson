@@ -7,16 +7,17 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/gomodule/redigo/redis"
 	"github.com/nitishm/go-rejson/v4/rjs"
 
 	goredis "github.com/go-redis/redis/v8"
-	"github.com/gomodule/redigo/redis"
 	"github.com/nitishm/go-rejson/v4"
 )
 
 var ctx = context.Background()
 
-func Example_JSONArray(rh *rejson.Handler) {
+// ExampleJSONArray demonstrates how to write a JSON Array to Redis
+func ExampleJSONArray(rh *rejson.Handler) {
 	ArrIn := []string{"one", "two", "three", "four", "five"}
 	res, err := rh.JSONSet("arr", ".", ArrIn)
 	if err != nil {
@@ -139,6 +140,7 @@ func Example_JSONArray(rh *rejson.Handler) {
 
 func main() {
 	var addr = flag.String("Server", "localhost:6379", "Redis server address")
+	var addrs = []string{"localhost:7001", "localhost:7002", "localhost:7003", "localhost:7004", "localhost:7005", "localhost:7006"}
 
 	rh := rejson.NewReJSONHandler()
 	flag.Parse()
@@ -157,7 +159,7 @@ func main() {
 	}()
 	rh.SetRedigoClient(conn)
 	fmt.Println("Executing Example_JSONSET for Redigo Client")
-	Example_JSONArray(rh)
+	ExampleJSONArray(rh)
 
 	// GoRedis Client
 	cli := goredis.NewClient(&goredis.Options{Addr: *addr})
@@ -170,6 +172,27 @@ func main() {
 		}
 	}()
 	rh.SetGoRedisClient(cli)
-	fmt.Println("\nExecuting Example_JSONSET for Redigo Client")
-	Example_JSONArray(rh)
+	fmt.Println("\nExecuting Example_JSONSET for goredis Client")
+	ExampleJSONArray(rh)
+
+	// goRedis Cluster Client
+	clustercli := goredis.NewClusterClient(&goredis.ClusterOptions{
+		Addrs: addrs,
+	})
+	defer func() {
+		err := clustercli.ForEachMaster(clustercli.Context(), func(ctx context.Context, master *goredis.Client) error {
+			master.FlushAll(ctx)
+			return nil
+		})
+		if err != nil {
+			log.Fatalf("goredis-cluster - failed to flush: %v", err)
+		}
+
+		if err := clustercli.Close(); err != nil {
+			log.Fatalf("goredis-cluster - failed to communicate to redis-server: %v", err)
+		}
+	}()
+	rh.SetGoRedisClient(clustercli)
+	fmt.Println("\nExecuting Example_JSONSET for goredis Cluster Client")
+	ExampleJSONArray(rh)
 }

@@ -27,7 +27,8 @@ type Student struct {
 	Rank int  `json:"rank,omitempty"`
 }
 
-func Example_JSONSet(rh *rejson.Handler) {
+// ExampleJSONSet demonstrates how to write a simpler struct to Redis
+func ExampleJSONSet(rh *rejson.Handler) {
 
 	student := Student{
 		Name: Name{
@@ -67,6 +68,7 @@ func Example_JSONSet(rh *rejson.Handler) {
 
 func main() {
 	var addr = flag.String("Server", "localhost:6379", "Redis server address")
+	var addrs = []string{"localhost:7001", "localhost:7002", "localhost:7003", "localhost:7004", "localhost:7005", "localhost:7006"}
 
 	rh := rejson.NewReJSONHandler()
 	flag.Parse()
@@ -85,7 +87,7 @@ func main() {
 	}()
 	rh.SetRedigoClient(conn)
 	fmt.Println("Executing Example_JSONSET for Redigo Client")
-	Example_JSONSet(rh)
+	ExampleJSONSet(rh)
 
 	// GoRedis Client
 	cli := goredis.NewClient(&goredis.Options{Addr: *addr})
@@ -98,6 +100,27 @@ func main() {
 		}
 	}()
 	rh.SetGoRedisClient(cli)
-	fmt.Println("\nExecuting Example_JSONSET for Redigo Client")
-	Example_JSONSet(rh)
+	fmt.Println("\nExecuting Example_JSONSET for goredis Client")
+	ExampleJSONSet(rh)
+
+	// GoRedis Cluster Client
+	clustercli := goredis.NewClusterClient(&goredis.ClusterOptions{
+		Addrs: addrs,
+	})
+	defer func() {
+		err := clustercli.ForEachMaster(clustercli.Context(), func(ctx context.Context, master *goredis.Client) error {
+			master.FlushAll(ctx)
+			return nil
+		})
+		if err != nil {
+			log.Fatalf("goredis-cluster - failed to flush: %v", err)
+		}
+
+		if err := clustercli.Close(); err != nil {
+			log.Fatalf("goredis-cluster - failed to communicate to redis-server: %v", err)
+		}
+	}()
+	rh.SetGoRedisClient(clustercli)
+	fmt.Println("\nExecuting Example_JSONSET for goredis Cluster Client")
+	ExampleJSONSet(rh)
 }
