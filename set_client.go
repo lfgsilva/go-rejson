@@ -14,7 +14,6 @@ type RedisClient interface {
 	SetClientInactive()
 	SetRedigoClient(redigo.Conn)
 	SetGoRedisClient(conn *goredis.Client)
-	SetGoRedisClusterClient(conn *goredis.ClusterClient)
 }
 
 // SetClientInactive resets the handler and unset any client, set to the handler
@@ -33,20 +32,13 @@ func (r *Handler) SetRedigoClient(conn redigo.Conn) {
 
 // SetGoRedisClient sets Go-Redis (https://github.com/go-redis/redis) client to
 // the handler. It is left for backward compatibility.
-func (r *Handler) SetGoRedisClient(conn *goredis.Client) {
+func (r *Handler) SetGoRedisClient(conn goredis.UniversalClient) {
 	r.SetGoRedisClientWithContext(context.TODO(), conn)
 }
 
 // SetGoRedisClientWithContext sets Go-Redis (https://github.com/go-redis/redis) client to
 // the handler with a global context for the connection
-func (r *Handler) SetGoRedisClientWithContext(ctx context.Context, conn *goredis.Client) {
+func (r *Handler) SetGoRedisClientWithContext(ctx context.Context, conn goredis.UniversalClient) {
 	r.clientName = rjs.ClientGoRedis
 	r.implementation = clients.NewGoRedisClient(ctx, conn)
-}
-
-// SetGoRedisClusterClientWithContext sets Go-Redis (https://github.com/go-redis/redis) cluster client to
-// the handler with a global context for the connection
-func (r *Handler) SetGoRedisClusterClientWithContext(ctx context.Context, conn *goredis.ClusterClient) {
-	r.clientName = rjs.ClientGoRedisCluster
-	r.implementation = clients.NewGoRedisClusterClient(ctx, conn)
 }

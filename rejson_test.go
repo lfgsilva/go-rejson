@@ -96,10 +96,10 @@ func (t *TestClient) SetTestingClient(conn interface{}) {
 		t.rh.SetRedigoClient(conn)
 	case *goredis.Client:
 		t.name = "GoRedis-"
-		t.rh.SetGoRedisClient(conn)
+		t.rh.SetGoRedisClientWithContext(context.Background(), conn)
 	case *goredis.ClusterClient:
 		t.name = "GoRedisCluster-"
-		t.rh.SetGoRedisClusterClientWithContext(context.Background(), conn)
+		t.rh.SetGoRedisClientWithContext(context.Background(), conn)
 	default:
 		t.name = "-"
 		t.conn = "inactive"
